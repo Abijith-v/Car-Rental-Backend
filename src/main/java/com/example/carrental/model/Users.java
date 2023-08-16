@@ -21,6 +21,8 @@ public class Users implements UserDetails {
     private Integer age;
     private String city;
     private String state;
+    private double latitude;
+    private double longitude;
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(

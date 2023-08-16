@@ -2,23 +2,46 @@ package com.example.carrental.service;
 
 import com.example.carrental.model.Users;
 import com.example.carrental.repository.UserRepository;
+import com.example.carrental.response.UserLoginResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
 
 @Service
 public class UserService {
 
+    public final static String GET_TOKEN_API_ENDPOINT = "http://localhost:8080/auth/token";
+
+    public final static String LOGOUT_USER_API_ENDPOINT = "http://localhost:8080/auth/revoke";
+
+    public final static String VALIDATE_TOKEN_API_ENDPOINT = "http://localhost:8080/auth/validate";
+
     @Autowired
     private UserRepository userRepository;
 
-    public ResponseEntity<?> registerUser(Users user, HttpSession httpSession) {
-        try {
+    @Autowired
+    private RestTemplate restTemplate;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    public ResponseEntity<String> registerUser(Users user, HttpSession httpSession) {
+        try {
             if (!userRepository.existsByEmail(user.getEmail())) {
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
                 userRepository.save(user);
                 return new ResponseEntity<>("Created User", HttpStatus.OK);
             } else {
@@ -30,5 +53,107 @@ public class UserService {
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    public ResponseEntity<?> loginUser(String username, String password) {
+        try {
+            // Call get token API
+            if (userRepository.existsByEmail(username)) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                String requestBody = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
+                // Create the request entity with headers and body
+                HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
+                // Make the POST request
+                ResponseEntity<String> response = restTemplate.exchange(
+                        GET_TOKEN_API_ENDPOINT,
+                        HttpMethod.POST,
+                        requestEntity,
+                        String.class
+                );
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    return response;
+                } else {
+                    throw new Exception("Login returned " + response.getStatusCode());
+                }
+            } else {
+                return new ResponseEntity<>(
+                    new UserLoginResponse("User not found with username " + username, null),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                new UserLoginResponse("Invalid password - " + e, null),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public String getEmailFromToken(String token) {
+        try {
+            Jws<Claims> jws = Jwts.parser().setSigningKey("mySecret").parseClaimsJws(token.substring(7));
+            Claims response = jws.getBody();
+            return response.getSubject();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        return null;
+    }
+
+    public ResponseEntity<?> logoutUserWithToken(String token) {
+        try {
+            // Call logout user API
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+            return restTemplate.exchange(
+                    LOGOUT_USER_API_ENDPOINT,
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+        } catch (Exception e) {
+
+            System.out.println(e.getMessage());
+            return new ResponseEntity<>(
+                    Map.of("message", "Failed to logout user, service returned 500"),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            String username = this.getEmailFromToken(token);
+            // Call validate token API
+            if (userRepository.existsByEmail(username)) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Authorization", token);
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                String requestBody = "{\"username\": \"" + username + "\"}";
+                HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
+                ResponseEntity<String> response = restTemplate.exchange(
+                        VALIDATE_TOKEN_API_ENDPOINT,
+                        HttpMethod.POST,
+                        requestEntity,
+                        String.class
+                );
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+                    return jsonResponse.get("tokenValid").asBoolean();
+                } else {
+                    System.out.println("500 code");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        return false;
     }
 }
