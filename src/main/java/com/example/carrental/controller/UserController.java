@@ -53,14 +53,14 @@ public class UserController {
         }
     }
 
-    @GetMapping("/get/{id}")
-    public ResponseEntity<GetUserByIdResponse> getUserById(@PathVariable long id, @RequestHeader("Authorization") String token) {
-        if (userService.validateToken(token)) {
-            Optional<Users> user = userRepository.findById(id);
+    @GetMapping("/get/{email}")
+    public ResponseEntity<GetUserByIdResponse> getUserByEmail(@PathVariable String email, @RequestHeader("Authorization") String token) {
+        if (userService.isAdminToken(token)) {
+            Optional<Users> user = userRepository.findByEmail(email);
             GetUserByIdResponse userForResponse = new GetUserByIdResponse(user.orElse(null));
             return new ResponseEntity<>(userForResponse, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
         }
     }
 }

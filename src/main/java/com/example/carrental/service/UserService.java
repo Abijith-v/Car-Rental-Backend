@@ -1,5 +1,6 @@
 package com.example.carrental.service;
 
+import com.example.carrental.model.Role;
 import com.example.carrental.model.Users;
 import com.example.carrental.repository.UserRepository;
 import com.example.carrental.response.UserLoginResponse;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class UserService {
@@ -25,6 +28,8 @@ public class UserService {
     public final static String LOGOUT_USER_API_ENDPOINT = "http://localhost:8080/auth/revoke";
 
     public final static String VALIDATE_TOKEN_API_ENDPOINT = "http://localhost:8080/auth/validate";
+
+    public final static String DEFAULT_ROLE = "ROLE_NORMAL";
 
     @Autowired
     private UserRepository userRepository;
@@ -152,6 +157,29 @@ public class UserService {
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
+        }
+
+        return false;
+    }
+
+    public boolean isAdminToken(String token) {
+        if (this.validateToken(token)) {
+            try {
+                // @TODO - Cache fetching username later
+                String username = this.getEmailFromToken(token);
+                String role = DEFAULT_ROLE;
+                Optional<Users> optionalUser = userRepository.findByEmail(username);
+                Users user = optionalUser.orElse(null);
+                if (user != null) {
+                    Set<Role> roles = user.getRoles();
+                    role = roles.iterator().hasNext() ? roles.iterator().next().getRoleName() : "ROLE_NORMAL";
+                }
+
+                System.out.println(role);
+                return role.trim().equals("ROLE_ADMIN");
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
 
         return false;

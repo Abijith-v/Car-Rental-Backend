@@ -27,4 +27,7 @@ public interface CarRepository extends JpaRepository<Car, Long> {
         @Param("lonValue") Double lonValue,
         @Param("radius") Double radius
     );
+
+    @Query(value = "SELECT DISTINCT brand FROM car", nativeQuery = true)
+    List<String> findDistinctBrands();
 }
