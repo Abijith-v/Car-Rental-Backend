@@ -104,7 +104,7 @@ public class UserService {
             System.out.println(e.getMessage());
         }
 
-        return null;
+        return "";
     }
 
     public ResponseEntity<?> logoutUserWithToken(String token) {

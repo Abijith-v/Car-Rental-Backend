@@ -13,8 +13,8 @@ public class Car {
     private String brand;
     private String modelName;
     private String color;
-    private double price;
-    private boolean status;
+    private double price = -1.0;
+    private boolean status = true;
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(

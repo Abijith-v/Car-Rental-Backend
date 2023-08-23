@@ -2,16 +2,20 @@ package com.example.carrental.service;
 
 import com.example.carrental.model.Car;
 import com.example.carrental.model.Users;
+import com.example.carrental.payload.AddNewCarPayload;
 import com.example.carrental.payload.FilterCarsPayload;
 import com.example.carrental.repository.CarRepository;
+import com.example.carrental.repository.UserRepository;
+import com.example.carrental.response.CommonResponse;
 import com.example.carrental.response.GetCarsByRadiusResponse;
-import jakarta.persistence.Access;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +24,9 @@ public class CarService {
 
     @Autowired
     private CarRepository carRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public List<GetCarsByRadiusResponse> getCarsByRadiusResponse(List<Object[]> cars, FilterCarsPayload filters) {
 
@@ -66,5 +73,24 @@ public class CarService {
 
     public List<String> getCarBrands() {
         return carRepository.findDistinctBrands();
+    }
+
+    public ResponseEntity<?> addNewCar(AddNewCarPayload carPayload) {
+
+        Optional<Users> optionalUser = userRepository.findByEmail(carPayload.getOwnerEmail());
+        Users user = optionalUser.orElse(null);
+
+        if (user != null) {
+            Car car = new Car();
+            car.setModelName(carPayload.getModelName());
+            car.setBrand(carPayload.getBrand());
+            car.setOwner(user);
+            car.setColor(carPayload.getColor());
+            car.setPrice(carPayload.getPrice());
+            carRepository.save(car);
+            return new ResponseEntity<>(new CommonResponse("success"), HttpStatus.OK);
+        }
+
+        return new ResponseEntity<>(new CommonResponse("User not found with the given username"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
