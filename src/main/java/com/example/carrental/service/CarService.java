@@ -93,4 +93,33 @@ public class CarService {
 
         return new ResponseEntity<>(new CommonResponse("User not found with the given username"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    public boolean updateCar(Long id, AddNewCarPayload payload) {
+        try {
+            Car car = carRepository.findById(id).orElse(null);
+            if (car != null) {
+                if (payload.getStatus() != null) {
+                    car.setStatus(payload.getStatus());
+                }
+                if (payload.getBrand() != null) {
+                    car.setBrand(payload.getBrand());
+                }
+                if (payload.getColor() != null) {
+                    car.setColor(payload.getColor());
+                }
+                if (payload.getModelName() != null) {
+                    car.setModelName(payload.getModelName());
+                }
+                if (payload.getPrice() != 0.0) {
+                    car.setPrice(payload.getPrice());
+                }
+                carRepository.save(car);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        return false;
+    }
 }

@@ -2,8 +2,10 @@ package com.example.carrental.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 @Data
+@Accessors(chain = true)
 @Entity
 public class Car {
 
@@ -13,8 +15,9 @@ public class Car {
     private String brand;
     private String modelName;
     private String color;
-    private double price = -1.0;
-    private boolean status = true;
+    private Boolean status = true;
+    private Double price = -1.0;
+    private Boolean booked = false;
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(

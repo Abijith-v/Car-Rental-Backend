@@ -1,9 +1,13 @@
 package com.example.carrental.controller;
 import com.example.carrental.model.Car;
+import com.example.carrental.model.CarBooking;
 import com.example.carrental.payload.AddNewCarPayload;
+import com.example.carrental.payload.BookCarPayload;
 import com.example.carrental.payload.FilterCarsPayload;
 import com.example.carrental.repository.CarRepository;
+import com.example.carrental.response.CarBookingResponse;
 import com.example.carrental.response.CommonResponse;
+import com.example.carrental.service.BookingService;
 import com.example.carrental.service.CarService;
 import com.example.carrental.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +31,9 @@ public class CarController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private BookingService bookingService;
 
     @PostMapping("/all")
     public ResponseEntity<?> getAllCarsWithinRadius(@RequestHeader("Authorization") String token, @RequestBody FilterCarsPayload requestPayload) {
@@ -99,5 +106,50 @@ public class CarController {
         }
 
         return new ResponseEntity<>(new CommonResponse("car id is invalid"), HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @PostMapping("/update/{id}")
+    public ResponseEntity<?> updateCar(
+        @RequestHeader("Authorization") String token,
+        @PathVariable Long id,
+        @RequestBody AddNewCarPayload payload
+    ) {
+        if (userService.validateToken(token)) {
+            if (carService.updateCar(id, payload)) {
+                return new ResponseEntity<>(new CommonResponse("Success"), HttpStatus.OK);
+            }
+        } else {
+            System.out.println("Invalid token");
+        }
+        return new ResponseEntity<>(new CommonResponse("Failed - Invalid car ID"), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @PostMapping("/book/{id}")
+    public ResponseEntity<?> bookCarForRental(
+        @RequestHeader("Authorization") String token,
+        @PathVariable Long id,
+        @RequestBody BookCarPayload payload
+    ) {
+        if (userService.validateToken(token)) {
+            try {
+                return new ResponseEntity<>(bookingService.bookCar(payload, id, token), HttpStatus.OK);
+            } catch (Exception e) {
+                return new ResponseEntity<>(new CommonResponse("Failed - " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.FORBIDDEN);
+    }
+
+    @GetMapping("/booking/status/{username}")
+    public ResponseEntity<?> getBookingStatus(@RequestHeader("Authorization") String token, @PathVariable String username) {
+
+        if (userService.isAdminToken(token) || userService.validateToken(token)) {
+            return bookingService.getBookingStatus(username);
+        } else {
+            System.out.println("Invalid token");
+        }
+
+        return new ResponseEntity<>(new CommonResponse("Failed - Invalid username / token"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

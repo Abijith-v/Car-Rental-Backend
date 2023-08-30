@@ -2,7 +2,9 @@ package com.example.carrental.controller;
 
 import com.example.carrental.model.Users;
 import com.example.carrental.payload.LoginRequestPayload;
+import com.example.carrental.payload.UpdateUserPayload;
 import com.example.carrental.repository.UserRepository;
+import com.example.carrental.response.CommonResponse;
 import com.example.carrental.response.GetUserByIdResponse;
 import com.example.carrental.service.UserService;
 import jakarta.servlet.http.HttpSession;
@@ -62,5 +64,40 @@ public class UserController {
         } else {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
         }
+    }
+
+    @PostMapping("update/{id}")
+    public ResponseEntity<CommonResponse> updateUserDetails(
+        @RequestHeader("Authorization") String token,
+        @PathVariable Long id,
+        @RequestBody UpdateUserPayload payload
+    ) {
+
+        Users user = userRepository.findById(id).orElse(null);
+        if (user != null
+            && (userService.isAdminToken(token)
+            || user.getEmail().equals(userService.getEmailFromToken(token)))
+        ) {
+            if (userService.getEmailFromToken(token).equals(user.getEmail())) {
+                if (userService.updateUserDetails(user, payload)) {
+                    return new ResponseEntity<>(new CommonResponse("Success"), HttpStatus.OK);
+                }
+            } else {
+                return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.FORBIDDEN);
+            }
+        }
+
+        return new ResponseEntity<>(new CommonResponse("Invalid user ID"), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @GetMapping("/get/id/{id}")
+    public ResponseEntity<?> getUserById(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+        if (userService.isAdminToken(token)) {
+            Users user = userRepository.findById(id).orElse(null);
+            if (user != null) {
+                return new ResponseEntity<>(new GetUserByIdResponse(user), HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>(new CommonResponse("Invalid token or user ID"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

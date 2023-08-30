@@ -2,6 +2,7 @@ package com.example.carrental.service;
 
 import com.example.carrental.model.Role;
 import com.example.carrental.model.Users;
+import com.example.carrental.payload.UpdateUserPayload;
 import com.example.carrental.repository.UserRepository;
 import com.example.carrental.response.UserLoginResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -96,6 +97,8 @@ public class UserService {
     }
 
     public String getEmailFromToken(String token) {
+
+        // TODO : call jwt service GET : auth/get/username
         try {
             Jws<Claims> jws = Jwts.parser().setSigningKey("mySecret").parseClaimsJws(token.substring(7));
             Claims response = jws.getBody();
@@ -180,6 +183,39 @@ public class UserService {
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
+        }
+
+        return false;
+    }
+
+    public boolean updateUserDetails(Users user, UpdateUserPayload payload) {
+
+        try {
+            if (user != null) {
+
+                if (payload.getAge() != null) {
+                    user.setAge(payload.getAge());
+                }
+                if (payload.getCity() != null) {
+                    user.setCity(payload.getCity());
+                }
+                if (payload.getName() != null) {
+                    user.setName(payload.getName());
+                }
+                if (payload.getState() != null) {
+                    user.setState(payload.getState());
+                }
+                if (payload.getLatitude() != 0.0) {
+                    user.setLatitude(payload.getLatitude());
+                }
+                if (payload.getLongitude() != 0.0) {
+                    user.setLongitude(payload.getLongitude());
+                }
+                userRepository.save(user);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
 
         return false;
