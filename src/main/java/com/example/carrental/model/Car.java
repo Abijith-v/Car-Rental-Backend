@@ -26,4 +26,5 @@ public class Car {
             inverseJoinColumns = @JoinColumn(name = "ownerId", referencedColumnName = "userId")
     )
     private Users owner = new Users();
+    private Integer stock = 1;
 }

@@ -6,13 +6,10 @@ import lombok.experimental.Accessors;
 
 import java.util.Date;
 
-@Accessors(chain = true)
-@Data
 @Entity
-@Table (
-    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "car_id"})
-)
-public class CarBooking {
+@Data
+@Accessors(chain = true)
+public class ConfirmedBooking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -26,12 +23,7 @@ public class CarBooking {
     @JoinColumn(name = "car_id")
     private Car car;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date pickupDate;
-
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date dropOffDate;
-
-    private String additionalServices;
-    private String status;
+    private Double amount;
+    private String modeOfPayment;
+    private Date dateOfBooking;
 }

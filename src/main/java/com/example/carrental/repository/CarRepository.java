@@ -19,7 +19,7 @@ public interface CarRepository extends JpaRepository<Car, Long> {
             "u.user_id, u.email, u.name FROM car_owner co " +
             "JOIN car c ON co.car_id = c.id " +
             "JOIN users u ON co.owner_id = u.user_id " +
-            "WHERE c.status = true AND " +
+            "WHERE c.status = true AND c.stock > 0 AND " +
             "calculate_haversine_distance(u.latitude, u.longitude, :latValue, :lonValue) <= :radius",
             nativeQuery = true)
     List<Object[]> findCarsWithinDistance(

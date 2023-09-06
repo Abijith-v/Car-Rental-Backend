@@ -1,20 +1,22 @@
 package com.example.carrental.controller;
 import com.example.carrental.model.Car;
 import com.example.carrental.model.CarBooking;
-import com.example.carrental.payload.AddNewCarPayload;
-import com.example.carrental.payload.BookCarPayload;
-import com.example.carrental.payload.FilterCarsPayload;
+import com.example.carrental.payload.*;
 import com.example.carrental.repository.CarRepository;
 import com.example.carrental.response.CarBookingResponse;
 import com.example.carrental.response.CommonResponse;
 import com.example.carrental.service.BookingService;
 import com.example.carrental.service.CarService;
+import com.example.carrental.service.PaymentService;
 import com.example.carrental.service.UserService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,11 @@ public class CarController {
 
     @Autowired
     private BookingService bookingService;
+
+    @Autowired
+    private PaymentService paymentService;
+
+    private final SseEmitter sseEmitter = new SseEmitter();
 
     @PostMapping("/all")
     public ResponseEntity<?> getAllCarsWithinRadius(@RequestHeader("Authorization") String token, @RequestBody FilterCarsPayload requestPayload) {
@@ -151,5 +158,18 @@ public class CarController {
         }
 
         return new ResponseEntity<>(new CommonResponse("Failed - Invalid username / token"), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @PostMapping("/booking/confirm")
+    public ResponseEntity<?> confirmBooking(@RequestHeader("Authorization") String token, @RequestBody PaymentConfirmationPayload payload) {
+        if (userService.validateToken(token)) {
+            if (paymentService.completePayment(payload)) {
+                return new ResponseEntity<>(new CommonResponse("Payment successful"), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(new CommonResponse("Payment Failed"), HttpStatus.OK);
+            }
+        } else {
+            return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.OK);
+        }
     }
 }

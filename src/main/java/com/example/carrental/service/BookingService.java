@@ -1,5 +1,6 @@
 package com.example.carrental.service;
 
+import com.example.carrental.helper.CommonHelper;
 import com.example.carrental.model.CarBooking;
 import com.example.carrental.model.Users;
 import com.example.carrental.payload.BookCarKafkaPayload;
@@ -28,9 +29,11 @@ import java.util.List;
 @Service
 public class BookingService {
 
-    private static final String[] BOOKING_STATUS = new String[] {
-        "REQUESTED"
-    };
+    public final static String BOOKING_STATUS_REQUESTED = "REQUESTED";
+
+    public final static String BOOKING_STATUS_PAYMENT_PENDING = "PAYMENT_PENDING";
+
+    public final static String BOOKING_STATUS_ACCEPTED = "ACCEPTED";
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -48,14 +51,16 @@ public class BookingService {
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
 
-    SimpleDateFormat iso8601DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    @Autowired
+    private CommonHelper commonHelper;
 
     @Transactional
     public CarBookingResponse bookCar(BookCarPayload bookCarPayload, Long id, String token) throws Exception {
         try {
-            if (carRepository.existsById(id)) {
-                Date pickupDate = iso8601DateFormat.parse(bookCarPayload.getPickupDate());
-                Date dropOffDate = iso8601DateFormat.parse(bookCarPayload.getDropOffDate());
+            if (carRepository.existsById(id)
+                && isCarAvailableToBook(id)) {
+                Date pickupDate = commonHelper.getDateInISO8601(bookCarPayload.getPickupDate());
+                Date dropOffDate = commonHelper.getDateInISO8601(bookCarPayload.getDropOffDate());
 
                 BookCarKafkaPayload bookingPayload = new BookCarKafkaPayload();
                 bookingPayload.setUserEmail(userService.getEmailFromToken(token))
@@ -81,6 +86,12 @@ public class BookingService {
             // Spring will roll back the transaction with @Transactional
             throw e;
         }
+    }
+
+    @Transactional
+    private boolean isCarAvailableToBook(Long id) {
+        CarBooking carBooking = bookingRepository.findByCarId(id).orElse(null);
+        return carBooking == null;
     }
 
     public ResponseEntity<?> getBookingStatus(String username) {
