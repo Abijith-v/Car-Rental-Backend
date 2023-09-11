@@ -12,4 +12,5 @@ public class AddNewCarPayload {
     private double price = -1.0;
     private String ownerEmail;
     private Boolean status = true;
+    private Integer stocks = 1;
 }

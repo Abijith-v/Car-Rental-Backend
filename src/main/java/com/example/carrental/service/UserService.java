@@ -30,6 +30,8 @@ public class UserService {
 
     public final static String VALIDATE_TOKEN_API_ENDPOINT = "http://localhost:8080/auth/validate";
 
+    public final static String GET_USERNAME_FROM_TOKEN_API_ENDPOINT = "http://localhost:8080/auth/get/username";
+
     public final static String DEFAULT_ROLE = "ROLE_NORMAL";
 
     @Autowired
@@ -97,12 +99,24 @@ public class UserService {
     }
 
     public String getEmailFromToken(String token) {
-
-        // TODO : call jwt service GET : auth/get/username
         try {
-            Jws<Claims> jws = Jwts.parser().setSigningKey("mySecret").parseClaimsJws(token.substring(7));
-            Claims response = jws.getBody();
-            return response.getSubject();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    GET_USERNAME_FROM_TOKEN_API_ENDPOINT,
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            } else {
+                System.out.println("500 code while fetching username from " + GET_USERNAME_FROM_TOKEN_API_ENDPOINT);
+            }
+
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -166,23 +180,21 @@ public class UserService {
     }
 
     public boolean isAdminToken(String token) {
-        if (this.validateToken(token)) {
-            try {
-                // @TODO - Cache fetching username later
-                String username = this.getEmailFromToken(token);
-                String role = DEFAULT_ROLE;
-                Optional<Users> optionalUser = userRepository.findByEmail(username);
-                Users user = optionalUser.orElse(null);
-                if (user != null) {
-                    Set<Role> roles = user.getRoles();
-                    role = roles.iterator().hasNext() ? roles.iterator().next().getRoleName() : "ROLE_NORMAL";
-                }
-
-                System.out.println(role);
-                return role.trim().equals("ROLE_ADMIN");
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
+        try {
+            // @TODO - Cache fetching username later
+            String username = this.getEmailFromToken(token.substring(7));
+            String role = DEFAULT_ROLE;
+            Optional<Users> optionalUser = userRepository.findByEmail(username);
+            Users user = optionalUser.orElse(null);
+            if (user != null) {
+                Set<Role> roles = user.getRoles();
+                role = roles.iterator().hasNext() ? roles.iterator().next().getRoleName() : "ROLE_NORMAL";
             }
+
+            System.out.println(role);
+            return role.trim().equals("ROLE_ADMIN");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
 
         return false;

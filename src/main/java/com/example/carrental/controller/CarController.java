@@ -3,6 +3,7 @@ import com.example.carrental.model.Car;
 import com.example.carrental.model.CarBooking;
 import com.example.carrental.payload.*;
 import com.example.carrental.repository.CarRepository;
+import com.example.carrental.response.BookingRequestResponse;
 import com.example.carrental.response.CarBookingResponse;
 import com.example.carrental.response.CommonResponse;
 import com.example.carrental.service.BookingService;
@@ -127,6 +128,7 @@ public class CarController {
             }
         } else {
             System.out.println("Invalid token");
+            return new ResponseEntity<>(new CommonResponse("Failed - Invalid token"), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(new CommonResponse("Failed - Invalid car ID"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -163,13 +165,41 @@ public class CarController {
     @PostMapping("/booking/confirm")
     public ResponseEntity<?> confirmBooking(@RequestHeader("Authorization") String token, @RequestBody PaymentConfirmationPayload payload) {
         if (userService.validateToken(token)) {
-            if (paymentService.completePayment(payload)) {
+            if (paymentService.completePayment(payload, token)) {
                 return new ResponseEntity<>(new CommonResponse("Payment successful"), HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(new CommonResponse("Payment Failed"), HttpStatus.OK);
             }
         } else {
             return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.OK);
+        }
+    }
+
+    @GetMapping("/seller/cars")
+    public ResponseEntity<?> getCarsByOwner(@RequestHeader("Authorization") String token) {
+        if (userService.isAdminToken(token)
+            || userService.validateToken(token)) {
+            try {
+                return new ResponseEntity<>(carService.getSellerCarsByUsername(token), HttpStatus.OK);
+            } catch (Exception e) {
+                return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.FORBIDDEN);
+        }
+    }
+
+    @GetMapping("/seller/booking/requests")
+    public ResponseEntity<?> getBookingRequests(@RequestHeader("Authorization") String token) {
+        if (userService.validateToken(token)) {
+            try {
+                return new ResponseEntity<>(bookingService.getBookingRequests(token), HttpStatus.OK);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                return new ResponseEntity<>(new CommonResponse(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            return new ResponseEntity<>(new CommonResponse("Invalid token"), HttpStatus.FORBIDDEN);
         }
     }
 }

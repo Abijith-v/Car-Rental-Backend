@@ -2,15 +2,16 @@ package com.example.carrental.service;
 
 import com.example.carrental.helper.CommonHelper;
 import com.example.carrental.model.CarBooking;
+import com.example.carrental.model.ConfirmedBooking;
 import com.example.carrental.model.Users;
 import com.example.carrental.payload.BookCarKafkaPayload;
 import com.example.carrental.payload.BookCarPayload;
+import com.example.carrental.payload.PaymentConfirmationPayload;
 import com.example.carrental.repository.BookingRepository;
 import com.example.carrental.repository.CarRepository;
+import com.example.carrental.repository.ConfirmedBookingRepository;
 import com.example.carrental.repository.UserRepository;
-import com.example.carrental.response.BookingStatusResponse;
-import com.example.carrental.response.CarBookingResponse;
-import com.example.carrental.response.CommonResponse;
+import com.example.carrental.response.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -54,6 +55,9 @@ public class BookingService {
     @Autowired
     private CommonHelper commonHelper;
 
+    @Autowired
+    private ConfirmedBookingRepository confirmedBookingRepository;
+
     @Transactional
     public CarBookingResponse bookCar(BookCarPayload bookCarPayload, Long id, String token) throws Exception {
         try {
@@ -79,7 +83,7 @@ public class BookingService {
                         .setMessage("Booking request received")
                         .setMessageId(result.getRecordMetadata().offset()); // Message ID
             } else {
-                throw new Exception("User or Car does not exist or is not available");
+                throw new Exception("Car is already booked / Not available right now");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -103,12 +107,38 @@ public class BookingService {
                 bookingStatusResponses.add(new BookingStatusResponse(
                     booking.getUser().getEmail(),
                     booking.getCar().getId(),
-                    booking.getStatus()
+                    "TEST"
+//                    booking.getStatus()
                 ));
             }
             return new ResponseEntity<>(bookingStatusResponses, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(new CommonResponse("Invalid user"), HttpStatus.FORBIDDEN);
+        }
+    }
+
+    public List<BookingRequestResponse> getBookingRequests(String token) throws Exception {
+        String username = userService.getEmailFromToken(token);
+        Users user = userRepository.findByEmail(username).orElse(null);
+        if (user != null) {
+            List<BookingRequestResponse> requestResponses = new ArrayList<>();
+            List<ConfirmedBooking> confirmedBookings = confirmedBookingRepository.findAllByOwnerId(user.getUserId());
+            for (ConfirmedBooking confirmedBooking : confirmedBookings) {
+                BookingRequestResponse response = new BookingRequestResponse();
+                requestResponses.add(
+                        response.setBookingId(confirmedBooking.getId())
+                        .setCar(confirmedBooking.getCar())
+                        .setModeOfPayment(confirmedBooking.getModeOfPayment())
+                        .setCustomerEmail(confirmedBooking.getUser().getEmail())
+                        .setCustomerName(confirmedBooking.getUser().getName())
+                        .setPickupDate(confirmedBooking.getPickupDate().toString())
+                        .setDropOffDate(confirmedBooking.getDropOffDate().toString())
+                        .setAdditionalRequests(confirmedBooking.getAdditionalServices())
+                );
+            }
+            return requestResponses;
+        } else {
+            throw new Exception("Invalid user ID");
         }
     }
 }

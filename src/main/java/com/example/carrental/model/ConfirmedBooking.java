@@ -25,5 +25,15 @@ public class ConfirmedBooking {
 
     private Double amount;
     private String modeOfPayment;
+
+    @Temporal(TemporalType.TIMESTAMP)
     private Date dateOfBooking;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date pickupDate;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date dropOffDate;
+
+    private String additionalServices;
 }
