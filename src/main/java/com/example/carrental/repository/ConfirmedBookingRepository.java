@@ -13,4 +13,6 @@ public interface ConfirmedBookingRepository extends JpaRepository<ConfirmedBooki
 
     @Query(value = "SELECT cb.* FROM confirmed_booking cb JOIN car_owner co ON cb.car_id = co.car_id WHERE co.owner_id = :ownerId", nativeQuery = true)
     List<ConfirmedBooking> findAllByOwnerId(@Param("ownerId") Long ownerId);
+
+    List<ConfirmedBooking> findAllByStatus(String status);
 }

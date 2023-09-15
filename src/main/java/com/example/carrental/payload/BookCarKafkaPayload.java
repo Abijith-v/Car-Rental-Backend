@@ -13,5 +13,4 @@ public class BookCarKafkaPayload {
     private Date pickupDate;
     private Date dropOffDate;
     private String additionalServices;
-    private String status;
 }

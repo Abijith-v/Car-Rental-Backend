@@ -66,7 +66,8 @@ public class PaymentService {
                     .setDateOfBooking(commonHelper.getDateInISO8601(payload.getDateOfPayment()))
                     .setAdditionalServices(payload.getAdditionalServices())
                     .setPickupDate(commonHelper.getDateInISO8601(payload.getPickupDate()))
-                    .setDropOffDate(commonHelper.getDateInISO8601(payload.getDropOffDate()));
+                    .setDropOffDate(commonHelper.getDateInISO8601(payload.getDropOffDate()))
+                    .setStatus(CommonHelper.bookingStatus.get("STATUS_PENDING"));
 
             ConfirmedBooking newBooking = confirmedBookingRepository.save(confirmedBooking);
             // Delete from bookings

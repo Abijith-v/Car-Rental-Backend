@@ -1,6 +1,7 @@
 package com.example.carrental.service;
 
 import com.example.carrental.helper.CommonHelper;
+import com.example.carrental.model.Car;
 import com.example.carrental.model.CarBooking;
 import com.example.carrental.model.ConfirmedBooking;
 import com.example.carrental.model.Users;
@@ -29,12 +30,6 @@ import java.util.List;
 
 @Service
 public class BookingService {
-
-    public final static String BOOKING_STATUS_REQUESTED = "REQUESTED";
-
-    public final static String BOOKING_STATUS_PAYMENT_PENDING = "PAYMENT_PENDING";
-
-    public final static String BOOKING_STATUS_ACCEPTED = "ACCEPTED";
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -71,8 +66,7 @@ public class BookingService {
                         .setCarId(id)
                         .setPickupDate(pickupDate)
                         .setDropOffDate(dropOffDate)
-                        .setAdditionalServices(bookCarPayload.getAdditionalServices())
-                        .setStatus("REQUESTED");
+                        .setAdditionalServices(bookCarPayload.getAdditionalServices());
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 String bookingJson = objectMapper.writeValueAsString(bookingPayload);
@@ -94,8 +88,12 @@ public class BookingService {
 
     @Transactional
     private boolean isCarAvailableToBook(Long id) {
-        CarBooking carBooking = bookingRepository.findByCarId(id).orElse(null);
-        return carBooking == null;
+        Car car = carRepository.findById(id).orElse(null);
+        if (car != null) {
+            return car.getStock() > 0;
+        }
+
+        return false;
     }
 
     public ResponseEntity<?> getBookingStatus(String username) {
@@ -117,6 +115,7 @@ public class BookingService {
         }
     }
 
+    // For seller to fetch requests pointed to them
     public List<BookingRequestResponse> getBookingRequests(String token) throws Exception {
         String username = userService.getEmailFromToken(token);
         Users user = userRepository.findByEmail(username).orElse(null);
@@ -140,5 +139,14 @@ public class BookingService {
         } else {
             throw new Exception("Invalid user ID");
         }
+    }
+
+    public List<ConfirmedBooking> getPendingRequests() {
+        return confirmedBookingRepository.findAllByStatus(CommonHelper.bookingStatus.get("STATUS_PENDING"));
+    }
+
+    public void updateBookingRequestStatus(ConfirmedBooking request, String statusDenied) {
+        request.setStatus(statusDenied);
+        confirmedBookingRepository.save(request);
     }
 }

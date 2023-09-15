@@ -36,4 +36,5 @@ public class ConfirmedBooking {
     private Date dropOffDate;
 
     private String additionalServices;
+    private String status;
 }
