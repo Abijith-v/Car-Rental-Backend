@@ -16,7 +16,7 @@ public class BookingRequestBackgroundProcessor {
     @Autowired
     private BookingService bookingService;
 
-    @Scheduled(cron = "0/60 * * * * ?") // Run every minute (adjust as needed)
+    @Scheduled(cron = "0 0 */6 * * ?") // Run every minute (adjust as needed)
     public void processPendingBookingRequests() {
         List<ConfirmedBooking> pendingRequests = bookingService.getPendingRequests();
         Date currentDateTime = new Date();
